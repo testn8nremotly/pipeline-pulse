@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F6F4;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1EF;
+    --ink: #16211E;
+    --muted: #56686A;
+    --line: #D9E0DD;
+    --accent: #0F7C6C;
+    --accent-ink: #08423A;
+    --good: #1E9E64;
+    --good-soft: #E3F5EA;
+    --warn: #C97F1E;
+    --warn-soft: #FBEEDC;
+    --bad: #C0463C;
+    --bad-soft: #FBE7E4;
+    --neutral: #8A7F6E;
+    --neutral-soft: #EFEAE1;
+    --shadow: 0 1px 2px rgba(20, 30, 28, 0.04), 0 8px 24px -16px rgba(20, 30, 28, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161A; --surface: #171F24; --surface-2: #1D262B; --ink: #E7EEEC; --muted: #91A3A2; --line: #2A353A;
+      --accent: #35C2A6; --accent-ink: #A9F0DE;
+      --good: #3FBE84; --good-soft: #143126; --warn: #E0A548; --warn-soft: #332A16;
+      --bad: #E27167; --bad-soft: #3A211E; --neutral: #B3A891; --neutral-soft: #2A2620;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -16px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161A; --surface: #171F24; --surface-2: #1D262B; --ink: #E7EEEC; --muted: #91A3A2; --line: #2A353A;
+    --accent: #35C2A6; --accent-ink: #A9F0DE;
+    --good: #3FBE84; --good-soft: #143126; --warn: #E0A548; --warn-soft: #332A16;
+    --bad: #E27167; --bad-soft: #3A211E; --neutral: #B3A891; --neutral-soft: #2A2620;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -16px rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 24px 60px; display: flex; flex-direction: column; gap: 22px; }
+  h1, h2 { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; margin: 0; text-wrap: balance; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .topbar .titles h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  .topbar .titles .sub { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+  .topbar .titles .sub .loc { font-family: "IBM Plex Mono", monospace; }
+  .status { display: flex; align-items: center; gap: 10px; }
+  .pill { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 7px 12px; border-radius: 999px; box-shadow: var(--shadow); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
+  .dot.stale { background: var(--warn); }
+  .dot.err { background: var(--bad); }
+  .dot.pulse { animation: pulse 2.2s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .dot.pulse { animation: none; } }
+  button.refresh { font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); background: var(--surface); border: 1px solid var(--line); padding: 7px 14px; border-radius: 999px; cursor: pointer; box-shadow: var(--shadow); }
+  button.refresh:hover { border-color: var(--accent); }
+  button.refresh:disabled { opacity: 0.6; cursor: default; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; }
+  .tile .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+  .tile .value { font-size: 27px; font-weight: 600; line-height: 1.1; }
+  .tile .detail { font-size: 12.5px; color: var(--muted); }
+  .tile.accent { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+  .tile.accent .value { color: var(--accent-ink); }
+  section { display: flex; flex-direction: column; gap: 12px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .section-head h2 { font-size: 15px; font-weight: 700; }
+  .section-head .note { font-size: 12px; color: var(--muted); }
+  .pipelines { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+  .pipeline-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+  .pipeline-card .pname { font-size: 14.5px; font-weight: 700; }
+  .pipeline-card .ptotal { font-size: 12px; color: var(--muted); }
+  .stage-row { display: flex; flex-direction: column; gap: 3px; }
+  .stage-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12.5px; }
+  .stage-top .sname { font-weight: 500; }
+  .stage-top .sfig { color: var(--muted); white-space: nowrap; }
+  .stage-track { height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .stage-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+  .stage-row.empty .sname, .stage-row.empty .sfig { color: var(--muted); }
+  .stage-row.empty .stage-fill { background: var(--line); }
+  .leads-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .lead-row { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 12px; align-items: center; padding: 11px 18px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .lead-row:last-child { border-bottom: none; }
+  .lead-row .name { font-weight: 600; }
+  .lead-row .src, .lead-row .when { color: var(--muted); font-size: 12px; }
+  .lead-row .when { text-align: right; white-space: nowrap; }
+  .status-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .status-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .status-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; background: var(--accent); }
+  footer { font-size: 11.5px; color: var(--muted); text-align: center; padding-top: 8px; }
+  .error-banner { background: var(--bad-soft); color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 30%, var(--line)); border-radius: 10px; padding: 12px 16px; font-size: 13px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="titles">
+      <h1>Pipeline Pulse</h1>
+      <div class="sub">GoHighLevel sub-account <span class="loc mono" id="locId">—</span></div>
+    </div>
+    <div class="status">
+      <span class="pill"><span class="dot pulse" id="statusDot"></span><span id="statusText">Loading…</span></span>
+      <button class="refresh" id="refreshBtn">Refresh now</button>
+    </div>
+  </div>
+
+  <div class="error-banner" id="errorBanner" hidden></div>
+
+  <div class="tiles" id="tiles" hidden>
+    <div class="tile accent"><div class="label">Total Leads</div><div class="value mono" id="tContacts">—</div><div class="detail">Contacts on file</div></div>
+    <div class="tile"><div class="label">Open Pipeline</div><div class="value mono" id="tOpenValue">—</div><div class="detail" id="tOpenCount">—</div></div>
+    <div class="tile"><div class="label">Won Revenue</div><div class="value mono" id="tWonValue">—</div><div class="detail" id="tWonCount">—</div></div>
+    <div class="tile"><div class="label">Win Rate</div><div class="value mono" id="tWinRate">—</div><div class="detail">Won vs. lost deals</div></div>
+  </div>
+
+  <section id="pipelinesSection" hidden>
+    <div class="section-head">
+      <h2>Pipeline funnels</h2>
+      <div class="status-legend"><span><i></i>Open opportunities (by count)</span></div>
+    </div>
+    <div class="pipelines" id="pipelines"></div>
+  </section>
+
+  <section id="leadsSection" hidden>
+    <div class="section-head">
+      <h2>Recent leads</h2>
+      <div class="note">Newest first · names anonymized</div>
+    </div>
+    <div class="leads-card" id="leadsCard"></div>
+  </section>
+
+  <footer id="footerNote">Auto-refreshes every 60s · Data via the GoHighLevel API</footer>
+</div>
+
+<script>
+  const money = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+  const fmtInt = (n) => Number(n || 0).toLocaleString('en-US');
+
+  function relTime(iso) {
+    if (!iso) return 'never';
+    const then = new Date(iso).getTime();
+    if (Number.isNaN(then)) return 'unknown';
+    const mins = Math.round((Date.now() - then) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago');
+    const days = Math.round(hrs / 24);
+    return days + (days === 1 ? ' day ago' : ' days ago');
+  }
+
+  function render(data) {
+    document.getElementById('errorBanner').hidden = true;
+    document.getElementById('tiles').hidden = false;
+    document.getElementById('pipelinesSection').hidden = false;
+    document.getElementById('leadsSection').hidden = false;
+    document.getElementById('locId').textContent = data.locationId || '—';
+
+    const t = data.totals || {};
+    document.getElementById('tContacts').textContent = fmtInt(t.contacts);
+    document.getElementById('tOpenValue').textContent = money(t.openValue);
+    document.getElementById('tOpenCount').textContent = fmtInt(t.openCount) + ' open opportunities';
+    document.getElementById('tWonValue').textContent = money(t.wonValue);
+    document.getElementById('tWonCount').textContent = fmtInt(t.wonCount) + ' won deals';
+    const won = Number(t.wonCount) || 0, lost = Number(t.lostCount) || 0;
+    const winRate = (won + lost) > 0 ? (won / (won + lost) * 100) : 0;
+    document.getElementById('tWinRate').textContent = winRate.toFixed(1) + '%';
+
+    const pWrap = document.getElementById('pipelines');
+    pWrap.innerHTML = '';
+    (data.pipelines || []).forEach((p) => {
+      const stages = (p.stages || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      const maxCount = Math.max(1, ...stages.map((s) => s.count || 0));
+      const totalCount = stages.reduce((a, s) => a + (s.count || 0), 0);
+      const totalValue = stages.reduce((a, s) => a + (s.value || 0), 0);
+      const card = document.createElement('div');
+      card.className = 'pipeline-card';
+      card.innerHTML = '<div><div class="pname"></div><div class="ptotal mono"></div></div>';
+      card.querySelector('.pname').textContent = p.name;
+      card.querySelector('.ptotal').textContent = fmtInt(totalCount) + ' open · ' + money(totalValue);
+      stages.forEach((s) => {
+        const pct = Math.round(((s.count || 0) / maxCount) * 100);
+        const row = document.createElement('div');
+        row.className = 'stage-row' + ((s.count || 0) === 0 ? ' empty' : '');
+        row.innerHTML = '<div class="stage-top"><span class="sname"></span><span class="sfig mono"></span></div><div class="stage-track"><div class="stage-fill"></div></div>';
+        row.querySelector('.sname').textContent = s.name;
+        row.querySelector('.sfig').textContent = fmtInt(s.count) + ' · ' + money(s.value);
+        row.querySelector('.stage-fill').style.width = Math.max(pct, (s.count || 0) > 0 ? 4 : 0) + '%';
+        card.appendChild(row);
+      });
+      pWrap.appendChild(card);
+    });
+
+    const leadsCard = document.getElementById('leadsCard');
+    leadsCard.innerHTML = '';
+    const leads = data.recentLeads || [];
+    if (leads.length === 0) {
+      leadsCard.innerHTML = '<div class="lead-row"><span class="src">No recent leads recorded.</span></div>';
+    }
+    leads.forEach((l) => {
+      const row = document.createElement('div');
+      row.className = 'lead-row';
+      row.innerHTML = '<span class="name"></span><span class="src"></span><span class="when mono"></span>';
+      row.querySelector('.name').textContent = l.name || 'Unnamed lead';
+      row.querySelector('.src').textContent = l.source || 'Source unknown';
+      row.querySelector('.when').textContent = relTime(l.dateAdded);
+      leadsCard.appendChild(row);
+    });
+
+    const dot = document.getElementById('statusDot');
+    dot.className = 'dot pulse';
+    document.getElementById('statusText').textContent = 'Live · synced ' + relTime(data.updatedAt);
+    document.getElementById('footerNote').textContent = 'Auto-refreshes every 60s · Data via the GoHighLevel API · Last sync ' + relTime(data.updatedAt);
+  }
+
+  function showError(message) {
+    const banner = document.getElementById('errorBanner');
+    banner.hidden = false;
+    banner.textContent = 'Could not load live data: ' + message;
+    const dot = document.getElementById('statusDot');
+    dot.className = 'dot err';
+    document.getElementById('statusText').textContent = 'Error';
+  }
+
+  async function load() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    const dot = document.getElementById('statusDot');
+    dot.className = 'dot pulse';
+    document.getElementById('statusText').textContent = 'Syncing…';
+    try {
+      const res = await fetch('/api/stats', { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+      render(data);
+    } catch (e) {
+      showError(e.message || String(e));
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', load);
+  load();
+  setInterval(load, 60000);
+</script>
+</body>
+</html>
